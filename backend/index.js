@@ -11,9 +11,9 @@ const attendanceRoutes = require('./routes/attendance');
 const app = express();
 
 // Middleware
-app.use(express.static(path.join(__dirname, '../build'))); 
+app.use(express.static(path.join(__dirname, '../dist'))); 
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../build', 'index.html'));
+  res.sendFile(path.join(__dirname, '../dist', 'index.html'));
 });// Vite default port
 app.use(express.json());
 app.use(helmet());
