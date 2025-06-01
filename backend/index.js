@@ -4,7 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
-
+const path = require('path');
 const memberRoutes = require('./routes/members');
 const attendanceRoutes = require('./routes/attendance');
 
