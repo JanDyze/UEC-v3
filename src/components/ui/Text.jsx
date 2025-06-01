@@ -24,7 +24,7 @@ export const Text = ({
   };
 
   return (
-    <span
+    <div
       className={clsx(
         variants[variant],
         colors[color],
@@ -33,6 +33,6 @@ export const Text = ({
       {...props}
     >
       {children}
-    </span>
+    </div>
   );
 }; 

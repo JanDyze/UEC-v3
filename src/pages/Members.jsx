@@ -7,6 +7,8 @@ import { Modal } from '../components/ui/Modal';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { styles } from '../styles/global';
 import clsx from 'clsx';
+import { ConfirmationModal } from '../components/ui/ConfirmationModal';
+import { useToast } from '../components/ui/Toast/ToastContext';
 
 const AddMemberForm = ({ formData, setFormData, onSubmit }) => {
   const handleChange = (e) => {
@@ -15,7 +17,7 @@ const AddMemberForm = ({ formData, setFormData, onSubmit }) => {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-2">
         <div>
           <Text variant="small" color="secondary" className="mb-1">
             First Name
@@ -26,7 +28,7 @@ const AddMemberForm = ({ formData, setFormData, onSubmit }) => {
             value={formData.firstName}
             onChange={handleChange}
             required
-            className={styles.input.base}
+            className={styles.input.base }
           />
         </div>
         <div>
@@ -44,18 +46,6 @@ const AddMemberForm = ({ formData, setFormData, onSubmit }) => {
         </div>
       </div>
 
-      <div>
-        <Text variant="small" color="secondary" className="mb-1">
-          Email
-        </Text>
-        <input
-          type="email"
-          name="email"
-          value={formData.email}
-          onChange={handleChange}
-          className={styles.input.base}
-        />
-      </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
@@ -96,12 +86,12 @@ const AddMemberForm = ({ formData, setFormData, onSubmit }) => {
           className={styles.input.base}
         />
       </div>
-import { Text } from '../components/ui/Text';
     </form>
   );
 };
 
 const Members = () => {
+  const { showToast } = useToast();
   const [members, setMembers] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState('table');
@@ -113,9 +103,12 @@ const Members = () => {
     birthday: '',
     address: '',
   });
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [deleteModal, setDeleteModal] = useState({
+    isOpen: false,
+    memberId: null,
+    memberName: ''
+  });
 
   useEffect(() => {
     fetchMembers();
@@ -127,7 +120,7 @@ const Members = () => {
       const res = await axios.get('/api/members');
       setMembers(res.data);
     } catch (err) {
-      setError('Failed to fetch members');
+      showToast('Failed to fetch members', 'error');
     } finally {
       setLoading(false);
     }
@@ -138,7 +131,7 @@ const Members = () => {
     try {
       setLoading(true);
       await axios.post('/api/members', formData);
-      setSuccess('Member added successfully!');
+      showToast('Member added successfully!');
       setFormData({
         firstName: '',
         lastName: '',
@@ -150,25 +143,32 @@ const Members = () => {
       setIsModalOpen(false);
       fetchMembers();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to add member');
+      showToast(err.response?.data?.error || 'Failed to add member', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this member?')) {
-      try {
-        setLoading(true);
-        await axios.delete(`/api/members/${id}`);
-        setSuccess('Member deleted successfully!');
-        fetchMembers();
-      } catch (err) {
-        setError(err.response?.data?.error || 'Failed to delete member');
-      } finally {
-        setLoading(false);
-      }
+  const handleDelete = async () => {
+    try {
+      setLoading(true);
+      await axios.delete(`/api/members/${deleteModal.memberId}`);
+      showToast(`${deleteModal.memberName} and their attendance records have been deleted successfully`);
+      setDeleteModal({ isOpen: false, memberId: null, memberName: '' });
+      fetchMembers();
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Failed to delete member', 'error');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const openDeleteModal = (member) => {
+    setDeleteModal({
+      isOpen: true,
+      memberId: member._id,
+      memberName: `${member.firstName} ${member.lastName}`
+    });
   };
 
   if (loading && !members.length) {
@@ -206,27 +206,6 @@ const Members = () => {
         </Button>
       </div>
 
-      {(success || error) && (
-        <div 
-          className={clsx(
-            'mb-4 p-3 rounded-lg flex items-center justify-between',
-            success ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'
-          )}
-        >
-          <Text color={success ? 'success' : 'danger'}>
-            {success || error}
-          </Text>
-          {success && (
-            <button 
-              onClick={() => setSuccess('')}
-              className="text-sm hover:opacity-80"
-            >
-              ✕
-            </button>
-          )}
-        </div>
-      )}
-
       {viewMode === 'table' ? (
         <div className={styles.table.wrapper}>
           <table className="w-full">
@@ -254,7 +233,7 @@ const Members = () => {
                   </td>
                   <td className={styles.table.cell}>
                     <Text color="secondary">
-                      {member.birthday 
+                      {member.birthday
                         ? new Date(member.birthday).toLocaleDateString()
                         : '-'
                       }
@@ -267,7 +246,7 @@ const Members = () => {
                     <Button
                       variant="danger"
                       size="sm"
-                      onClick={() => handleDelete(member._id)}
+                      onClick={() => openDeleteModal(member)}
                     >
                       Delete
                     </Button>
@@ -288,7 +267,7 @@ const Members = () => {
                 <Button
                   variant="danger"
                   size="sm"
-                  onClick={() => handleDelete(member._id)}
+                  onClick={() => openDeleteModal(member)}
                 >
                   Delete
                 </Button>
@@ -302,7 +281,7 @@ const Members = () => {
                 </Text>
                 <Text color="secondary">
                   <span className="font-medium">Birthday:</span>{' '}
-                  {member.birthday 
+                  {member.birthday
                     ? new Date(member.birthday).toLocaleDateString()
                     : '-'
                   }
@@ -343,6 +322,27 @@ const Members = () => {
           onSubmit={handleSubmit}
         />
       </Modal>
+
+      <ConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, memberId: null, memberName: '' })}
+        onConfirm={handleDelete}
+        title="Delete Member"
+        message={
+          <>
+            <Text color="secondary" className="mb-2">
+              Are you sure you want to delete {deleteModal.memberName}?
+            </Text>
+            <Text color="danger" variant="small">
+              This will also delete all attendance records for this member. This action cannot be undone.
+            </Text>
+          </>
+        }
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        loading={loading}
+      />
     </div>
   );
 };

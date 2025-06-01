@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Member = require('../models/Member');
+const Attendance = require('../models/Attendance');
 
 // Add a member
 router.post('/', async (req, res) => {
@@ -13,14 +14,20 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Remove a member
+// Delete member and their attendance records
 router.delete('/:id', async (req, res) => {
   try {
+    // Delete all attendance records for this member
+    await Attendance.deleteMany({ memberId: req.params.id });
+    
+    // Delete the member
     const member = await Member.findByIdAndDelete(req.params.id);
+    
     if (!member) {
       return res.status(404).json({ error: 'Member not found' });
     }
-    res.json({ message: 'Member deleted successfully' });
+    
+    res.json({ message: 'Member and attendance records deleted successfully' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
