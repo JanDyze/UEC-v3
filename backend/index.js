@@ -11,10 +11,6 @@ const attendanceRoutes = require('./routes/attendance');
 const app = express();
 
 // Middleware
-app.use(express.static(path.join(__dirname, '../dist'))); 
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../dist', 'index.html'));
-});// Vite default port
 app.use(express.json());
 app.use(helmet());
 app.use(
@@ -24,9 +20,20 @@ app.use(
   })
 );
 
-// Routes
+// API Routes
+app.get('/api', (req, res) => {
+  res.json({ message: 'Church System API' });
+});
 app.use('/api/members', memberRoutes);
 app.use('/api/attendance', attendanceRoutes);
+
+// Static file serving
+app.use(express.static(path.join(__dirname, '../dist')));
+
+// Catch-all route for SPA - must be last
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../dist', 'index.html'));
+});
 
 // MongoDB Connection
 mongoose
@@ -36,11 +43,6 @@ mongoose
   })
   .then(() => console.log('Connected to MongoDB'))
   .catch((err) => console.error('MongoDB connection error:', err));
-
-// Basic Route
-app.get('/api', (req, res) => {
-  res.json({ message: 'Church System API' });
-});
 
 // Error Handling
 app.use((err, req, res, next) => {
